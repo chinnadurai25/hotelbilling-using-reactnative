@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "Food Shop",
+    "slug": "food-shop-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#FF6B6B",
+      "resizeMode": "contain"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#FF6B6B"
+      }
+    },
+    "web": {},
+    "plugins": [
+      "expo-font"
+    ]
+  }
+}
