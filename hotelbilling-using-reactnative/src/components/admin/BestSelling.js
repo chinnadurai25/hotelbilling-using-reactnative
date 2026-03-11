@@ -1,13 +1,7 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Image, Animated } from 'react-native';
-
-const topItems = [
-  { id: 1, name: 'Spicy Chicken Burger', orders: 154, revenue: 1078, image: 'https://cdn-icons-png.flaticon.com/512/3075/3075977.png' },
-  { id: 2, name: 'Margherita Pizza', orders: 120, revenue: 1440, image: 'https://cdn-icons-png.flaticon.com/512/3595/3595466.png' },
-  { id: 3, name: 'Pasta Alfredo', orders: 98, revenue: 882, image: 'https://cdn-icons-png.flaticon.com/512/11550/11550426.png' },
-  { id: 4, name: 'Chocolate Brownie', orders: 85, revenue: 425, image: 'https://cdn-icons-png.flaticon.com/512/5752/5752664.png' },
-  { id: 5, name: 'Iced Latte', orders: 76, revenue: 304, image: 'https://cdn-icons-png.flaticon.com/512/1000/1000961.png' },
-];
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Image, Animated, ActivityIndicator } from 'react-native';
+import { api } from '../../utils/api';
+import FoodImage from '../FoodImage';
 
 const BestSellingItem = ({ item, theme, index, maxOrders }) => {
   const fillAnim = useRef(new Animated.Value(0)).current;
@@ -24,14 +18,14 @@ const BestSellingItem = ({ item, theme, index, maxOrders }) => {
   return (
     <View style={styles.itemRow}>
       <Text style={[styles.rank, { color: theme.subText }]}>#{index + 1}</Text>
-      <Image source={{ uri: item.image }} style={styles.image} />
+      <FoodImage imageUrl={item.imageUrl} style={styles.image} />
       
       <View style={styles.itemDetails}>
         <Text style={[styles.itemName, { color: theme.text }]} numberOfLines={1}>
           {item.name}
         </Text>
         <Text style={[styles.itemStats, { color: theme.subText }]}>
-          {item.orders} orders • ${item.revenue}
+          {item.orders} orders • ₹{item.revenue}
         </Text>
         
         {/* Animated Bar Chart for volume */}
@@ -55,21 +49,75 @@ const BestSellingItem = ({ item, theme, index, maxOrders }) => {
 };
 
 const BestSelling = ({ theme }) => {
-  const maxOrders = Math.max(...topItems.map(i => i.orders));
+  const [topItems, setTopItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchBestSellers();
+  }, []);
+
+  const fetchBestSellers = async () => {
+    try {
+      const [orders, food] = await Promise.all([
+        api.getOrders(),
+        api.getFood()
+      ]);
+
+      const itemStats = {};
+
+      orders.forEach(order => {
+        order.items?.forEach(item => {
+          const id = item._id || item.id || item.name;
+          if (!itemStats[id]) {
+            itemStats[id] = { 
+              name: item.name, 
+              orders: 0, 
+              revenue: 0,
+              imageUrl: food.find(f => f.name === item.name)?.imageUrl
+            };
+          }
+          itemStats[id].orders += item.quantity;
+          itemStats[id].revenue += (item.price * item.quantity);
+        });
+      });
+
+      const sorted = Object.values(itemStats)
+        .sort((a, b) => b.orders - a.orders)
+        .slice(0, 5);
+
+      setTopItems(sorted);
+    } catch (error) {
+      console.error('Error calculating best sellers:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const maxOrders = topItems.length > 0 ? Math.max(...topItems.map(i => i.orders)) : 0;
+
+  if (loading) return (
+    <View style={styles.container}>
+      <ActivityIndicator size="small" color={theme.primary} />
+    </View>
+  );
 
   return (
     <View style={styles.container}>
       <Text style={[styles.sectionTitle, { color: theme.text }]}>Best Selling Items</Text>
       <View style={[styles.card, { backgroundColor: theme.cardBg }]}>
-        {topItems.map((item, index) => (
-          <BestSellingItem 
-            key={item.id} 
-            item={item} 
-            theme={theme} 
-            index={index} 
-            maxOrders={maxOrders} 
-          />
-        ))}
+        {topItems.length === 0 ? (
+          <Text style={{ color: theme.subText, textAlign: 'center' }}>No sales data yet.</Text>
+        ) : (
+          topItems.map((item, index) => (
+            <BestSellingItem 
+              key={index} 
+              item={item} 
+              theme={theme} 
+              index={index} 
+              maxOrders={maxOrders} 
+            />
+          ))
+        )}
       </View>
     </View>
   );

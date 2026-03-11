@@ -3,9 +3,11 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import FoodImage from './FoodImage';
 import { useCart } from '../context/CartContext';
+import { useTheme } from '../context/ThemeContext';
 
 const CartItem = ({ item }) => {
   const { updateQuantity, removeFromCart } = useCart();
+  const { theme } = useTheme();
 
   const handleIncrease = () => {
     updateQuantity(item.id, item.quantity + 1);
@@ -22,31 +24,31 @@ const CartItem = ({ item }) => {
   const totalPrice = item.price * item.quantity;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.cardBg, borderColor: theme.border }]}>
       <FoodImage 
         imageUrl={item.imageUrl} 
         style={styles.image}
       />
       <View style={styles.content}>
-        <Text style={styles.name}>{item.name}</Text>
-        <Text style={styles.price}>₹{item.price} each</Text>
+        <Text style={[styles.name, { color: theme.text }]}>{item.name}</Text>
+        <Text style={[styles.price, { color: theme.subText }]}>₹{item.price} each</Text>
         <View style={styles.controls}>
           <View style={styles.quantityControls}>
             <TouchableOpacity 
               style={styles.quantityButton}
               onPress={handleDecrease}
             >
-              <Ionicons name="remove-circle-outline" size={24} color="#FF6B6B" />
+              <Ionicons name="remove-circle-outline" size={24} color={theme.primary} />
             </TouchableOpacity>
-            <Text style={styles.quantity}>{item.quantity}</Text>
+            <Text style={[styles.quantity, { color: theme.text }]}>{item.quantity}</Text>
             <TouchableOpacity 
               style={styles.quantityButton}
               onPress={handleIncrease}
             >
-              <Ionicons name="add-circle-outline" size={24} color="#FF6B6B" />
+              <Ionicons name="add-circle-outline" size={24} color={theme.primary} />
             </TouchableOpacity>
           </View>
-          <Text style={styles.totalPrice}>₹{totalPrice}</Text>
+          <Text style={[styles.totalPrice, { color: theme.primary }]}>₹{totalPrice}</Text>
         </View>
       </View>
       <TouchableOpacity 

@@ -8,7 +8,8 @@ import {
   ScrollView, 
   Switch,
   Image,
-  Alert
+  Alert,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -58,7 +59,9 @@ const AddFoodItem = ({ theme }) => {
       // Upload image first if exists
       if (formData.image) {
         const uploadRes = await api.uploadImage(formData.image);
-        imageUrl = `http://10.109.252.223:5000/uploads/${uploadRes.filename}`;
+        // Use the same base URL as the API
+        const baseUrl = (process.env.EXPO_PUBLIC_VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '');
+        imageUrl = `${baseUrl}/uploads/${uploadRes.filename}`;
       }
 
       const foodData = {

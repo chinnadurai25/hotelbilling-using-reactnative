@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import QuickStats from '../components/admin/QuickStats';
 import TableManager from '../components/admin/TableManager';
 import AddFoodItem from '../components/admin/AddFoodItem';
@@ -18,11 +20,14 @@ import MenuManager from '../components/admin/MenuManager';
 import OrderManager from '../components/admin/OrderManager';
 import Analytics from '../components/admin/Analytics';
 import BestSelling from '../components/admin/BestSelling';
+import { useCart } from '../context/CartContext';
 
 const { width } = Dimensions.get('window');
 
 const AdminDashboardScreen = ({ navigation }) => {
-  const [isDarkMode, setIsDarkMode] = useState(true);
+  const { isDarkMode, toggleTheme, theme } = useTheme();
+  const { logout } = useAuth();
+  const { getTotalItems } = useCart();
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   // Active section state for better mobile UX instead of one giant scroll if preferred,
@@ -37,8 +42,6 @@ const AdminDashboardScreen = ({ navigation }) => {
     }).start();
   }, []);
 
-  const theme = isDarkMode ? darkTheme : lightTheme;
-
   const renderHeader = () => (
     <View style={styles.headerContainer}>
       <View style={styles.headerLeft}>
@@ -46,15 +49,14 @@ const AdminDashboardScreen = ({ navigation }) => {
         <Text style={[styles.headerSubtitle, { color: theme.subText }]}>Hotel Billing Management</Text>
       </View>
       <View style={styles.headerRight}>
-        <TouchableOpacity style={styles.iconButton} onPress={() => setIsDarkMode(!isDarkMode)}>
+        <TouchableOpacity style={styles.iconButton} onPress={toggleTheme}>
           <Ionicons name={isDarkMode ? "sunny" : "moon"} size={24} color={theme.text} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.iconButton}>
-          <Ionicons name="notifications-outline" size={24} color={theme.text} />
-          <View style={styles.notificationBadge} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.profileIcon}>
-          <Ionicons name="person-circle" size={40} color={theme.primary} />
+        <TouchableOpacity 
+          style={[styles.iconButton, { marginLeft: 15 }]}
+          onPress={logout}
+        >
+          <Ionicons name="log-out-outline" size={26} color={theme.danger} />
         </TouchableOpacity>
       </View>
     </View>
@@ -136,34 +138,7 @@ const AdminDashboardScreen = ({ navigation }) => {
   );
 };
 
-// Colors for modern glassmorphism and gradient effects
-const lightTheme = {
-  background: '#F4F7FE',
-  cardBg: '#FFFFFF',
-  text: '#1B2559',
-  subText: '#A3AED0',
-  primary: '#4318FF',
-  secondary: '#39B8FF',
-  success: '#01B574',
-  danger: '#EE5D50',
-  warning: '#FFCE20',
-  border: '#E0E5F2',
-  cardOverlay: 'rgba(255, 255, 255, 0.7)',
-};
-
-const darkTheme = {
-  background: '#0B1437',
-  cardBg: '#111C44',
-  text: '#FFFFFF',
-  subText: '#A3AED0',
-  primary: '#7551FF',
-  secondary: '#39B8FF',
-  success: '#01B574',
-  danger: '#EE5D50',
-  warning: '#FFCE20',
-  border: '#111C44',
-  cardOverlay: 'rgba(17, 28, 68, 0.7)',
-};
+// Themes moved to ThemeContext.js
 
 const styles = StyleSheet.create({
   safeArea: {

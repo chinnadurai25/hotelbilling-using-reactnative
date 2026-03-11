@@ -3,10 +3,12 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-nati
 import { useNavigation } from '@react-navigation/native';
 import CartItem from '../components/CartItem';
 import { useCart } from '../context/CartContext';
+import { useTheme } from '../context/ThemeContext';
 
 const CartScreen = () => {
   const navigation = useNavigation();
   const { cart, getTotalAmount } = useCart();
+  const { theme } = useTheme();
 
   const handleProceedToBilling = () => {
     if (cart.length > 0) {
@@ -16,10 +18,10 @@ const CartScreen = () => {
 
   if (cart.length === 0) {
     return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>Your cart is empty</Text>
+      <View style={[styles.emptyContainer, { backgroundColor: theme.background }]}>
+        <Text style={[styles.emptyText, { color: theme.subText }]}>Your cart is empty</Text>
         <TouchableOpacity
-          style={styles.backButton}
+          style={[styles.backButton, { backgroundColor: theme.primary }]}
           onPress={() => navigation.goBack()}
         >
           <Text style={styles.backButtonText}>Browse Menu</Text>
@@ -29,28 +31,28 @@ const CartScreen = () => {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Shopping Cart</Text>
-        <Text style={styles.itemCount}>{cart.length} {cart.length === 1 ? 'item' : 'items'}</Text>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={[styles.header, { backgroundColor: theme.cardBg, borderBottomColor: theme.border }]}>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>Shopping Cart</Text>
+        <Text style={[styles.itemCount, { color: theme.subText }]}>{cart.length} {cart.length === 1 ? 'item' : 'items'}</Text>
       </View>
 
       <ScrollView 
         style={styles.cartList}
         contentContainerStyle={styles.cartListContent}
       >
-        {cart.map(item => (
-          <CartItem key={item.id} item={item} />
+        {cart.map((item, index) => (
+          <CartItem key={item._id || item.id || index} item={item} />
         ))}
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { backgroundColor: theme.cardBg, borderTopColor: theme.border }]}>
         <View style={styles.totalContainer}>
-          <Text style={styles.totalLabel}>Total Amount:</Text>
-          <Text style={styles.totalAmount}>₹{getTotalAmount()}</Text>
+          <Text style={[styles.totalLabel, { color: theme.text }]}>Total Amount:</Text>
+          <Text style={[styles.totalAmount, { color: theme.primary }]}>₹{getTotalAmount()}</Text>
         </View>
         <TouchableOpacity
-          style={styles.checkoutButton}
+          style={[styles.checkoutButton, { backgroundColor: theme.primary }]}
           onPress={handleProceedToBilling}
         >
           <Text style={styles.checkoutButtonText}>Proceed to Billing</Text>
@@ -89,7 +91,9 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#fff',
-    padding: 16,
+    paddingTop: 50,
+    paddingBottom: 15,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },

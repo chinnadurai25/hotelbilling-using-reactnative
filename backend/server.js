@@ -12,8 +12,19 @@ const PORT = process.env.PORT || 5000;
 // Connect to Database
 connectDB();
 
+// Health check endpoint
+app.get('/', (req, res) => {
+  res.send('Backend Server is Running!');
+});
+
 app.use(cors());
 app.use(express.json());
+
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  next();
+});
 
 // Create uploads folder if not exists
 const uploadDir = path.join(__dirname, 'uploads');
@@ -41,6 +52,7 @@ const upload = multer({ storage });
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/food', require('./routes/food'));
 app.use('/api/orders', require('./routes/orders'));
+app.use('/api/tables', require('./routes/tables'));
 
 // Upload image endpoint
 app.post('/upload', upload.single('photo'), (req, res) => {

@@ -5,6 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import MenuItem from '../components/MenuItem';
 import { useCart } from '../context/CartContext';
 import { api } from '../utils/api';
+import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 
 const MenuScreen = () => {
   const navigation = useNavigation();
@@ -12,6 +14,8 @@ const MenuScreen = () => {
   const [foodItems, setFoodItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const { theme, isDarkMode } = useTheme();
+  const { logout } = useAuth();
   const { getTotalItems } = useCart();
 
   const categories = [
@@ -49,36 +53,41 @@ const MenuScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Food Menu</Text>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={[styles.header, { backgroundColor: theme.cardBg, borderBottomColor: theme.border }]}>
+        <TouchableOpacity onPress={logout} style={{ padding: 5 }}>
+          <Ionicons name="log-out-outline" size={24} color={theme.danger} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: theme.text, flex: 1, marginLeft: 10 }]}>Food Menu</Text>
         <TouchableOpacity 
           style={styles.cartButton}
           onPress={() => navigation.navigate('Cart')}
         >
-          <Ionicons name="cart" size={24} color="#FF6B6B" />
+          <Ionicons name="cart" size={24} color={theme.primary} />
           {getTotalItems() > 0 && (
-            <View style={styles.badge}>
+            <View style={[styles.badge, { backgroundColor: theme.primary }]}>
               <Text style={styles.badgeText}>{getTotalItems()}</Text>
             </View>
           )}
         </TouchableOpacity>
       </View>
 
-      <View style={styles.categoryTabs}>
+      <View style={[styles.categoryTabs, { backgroundColor: theme.cardBg, borderBottomColor: theme.border }]}>
         {categories.map(category => (
           <TouchableOpacity
             key={category.key}
             style={[
               styles.tab,
-              activeCategory === category.key && styles.activeTab
+              { backgroundColor: theme.background },
+              activeCategory === category.key && [styles.activeTab, { backgroundColor: theme.primary }]
             ]}
             onPress={() => setActiveCategory(category.key)}
           >
             <Text
               style={[
                 styles.tabText,
-                activeCategory === category.key && styles.activeTabText
+                { color: theme.subText },
+                activeCategory === category.key && { color: '#fff' }
               ]}
             >
               {category.label}
@@ -89,20 +98,20 @@ const MenuScreen = () => {
 
       {loading && !refreshing ? (
         <View style={styles.loader}>
-          <ActivityIndicator size="large" color="#FF6B6B" />
+          <ActivityIndicator size="large" color={theme.primary} />
         </View>
       ) : (
         <ScrollView 
           style={styles.menuList}
           contentContainerStyle={styles.menuListContent}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF6B6B']} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.primary]} tintColor={theme.primary} />
           }
         >
           {getMenuItems().length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Ionicons name="restaurant-outline" size={64} color="#ccc" />
-              <Text style={styles.emptyText}>No items found in this category</Text>
+              <Ionicons name="restaurant-outline" size={64} color={theme.subText} />
+              <Text style={[styles.emptyText, { color: theme.subText }]}>No items found in this category</Text>
             </View>
           ) : (
             getMenuItems().map(item => (
@@ -124,7 +133,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    paddingTop: 50,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
     backgroundColor: '#fff',
     elevation: 2,
     shadowColor: '#000',

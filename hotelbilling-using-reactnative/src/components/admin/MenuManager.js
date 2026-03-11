@@ -1,36 +1,50 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, FlatList } from 'react-native';
-
-// Backend Integration: Replace mockMenu with data from MongoDB API (useEffect fetch)
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { api } from '../../utils/api';
+import { useCart } from '../../context/CartContext';
+import { useTheme } from '../../context/ThemeContext';
+import FoodImage from '../FoodImage';
 
-const mockMenu = [
-  { id: 1, name: 'Spicy Chicken Burger', price: 7.99, type: 'Non Veg', category: 'Lunch', image: 'https://cdn-icons-png.flaticon.com/512/3075/3075977.png' },
-  { id: 2, name: 'Veggie Supreme Pizza', price: 12.50, type: 'Veg', category: 'Dinner', image: 'https://cdn-icons-png.flaticon.com/512/3595/3595466.png' },
-  { id: 3, name: 'Cappuccino', price: 4.50, type: 'Veg', category: 'Drinks', image: 'https://cdn-icons-png.flaticon.com/512/1000/1000961.png' },
-  { id: 4, name: 'Club Sandwich', price: 6.99, type: 'Non Veg', category: 'Breakfast', image: 'https://cdn-icons-png.flaticon.com/512/11550/11550426.png' },
-];
-
-const MenuItem = ({ item, theme }) => (
+const MenuItem = ({ item, theme, onAddToCart }) => (
   <View style={[styles.card, { backgroundColor: theme.cardBg }]}>
-    <Image source={{ uri: item.image }} style={styles.image} />
+    <FoodImage imageUrl={item.imageUrl} style={styles.image} />
     <View style={styles.details}>
       <View style={styles.row}>
         <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>{item.name}</Text>
-        <View style={[styles.badge, { backgroundColor: item.type === 'Veg' ? theme.success + '20' : theme.danger + '20' }]}>
-          <Text style={{ color: item.type === 'Veg' ? theme.success : theme.danger, fontSize: 10, fontWeight: 'bold' }}>
-            {item.type}
+        <View style={[styles.badge, { backgroundColor: (item.type || 'Veg') === 'Veg' ? theme.success + '20' : theme.danger + '20' }]}>
+          <Text style={{ color: (item.type || 'Veg') === 'Veg' ? theme.success : theme.danger, fontSize: 10, fontWeight: 'bold' }}>
+            {item.type || 'Veg'}
           </Text>
         </View>
       </View>
-      <Text style={[styles.category, { color: theme.subText }]}>{item.category} • ${item.price}</Text>
+      <Text style={[styles.category, { color: theme.subText }]}>{item.category} • ₹{item.price}</Text>
       
       <View style={styles.actions}>
+        <TouchableOpacity 
+          style={[styles.actionBtn, { backgroundColor: theme.primary + '15' }]}
+          onPress={() => onAddToCart(item)}
+        >
+          <Ionicons name="cart-outline" size={18} color={theme.primary} />
+          <Text style={[styles.actionText, { color: theme.primary }]}>Add</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={[styles.actionBtn, { backgroundColor: theme.background }]}>
           <Ionicons name="create-outline" size={18} color={theme.primary} />
           <Text style={[styles.actionText, { color: theme.primary }]}>Edit</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.actionBtn, { backgroundColor: theme.background }]}>
+        <TouchableOpacity 
+          style={[styles.actionBtn, { backgroundColor: theme.background }]}
+          onPress={() => {
+            Alert.alert(
+              'Delete Item',
+              `Are you sure you want to delete ${item.name}?`,
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Delete', style: 'destructive', onPress: () => onAddToCart(item, true) }
+              ]
+            );
+          }}
+        >
           <Ionicons name="trash-outline" size={18} color={theme.danger} />
           <Text style={[styles.actionText, { color: theme.danger }]}>Delete</Text>
         </TouchableOpacity>
@@ -40,16 +54,59 @@ const MenuItem = ({ item, theme }) => (
 );
 
 const MenuManager = ({ theme }) => {
+  const [menuItems, setMenuItems] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const { addToCart } = useCart();
+
+  React.useEffect(() => {
+    fetchMenu();
+  }, []);
+
+  const fetchMenu = async () => {
+    try {
+      const data = await api.getFood();
+      setMenuItems(data);
+    } catch (error) {
+      console.error('Error fetching menu in manager:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteItem = async (item) => {
+    try {
+      await api.deleteFood(item._id || item.id);
+      fetchMenu();
+      Alert.alert('Success', 'Item deleted successfully');
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      Alert.alert('Error', 'Failed to delete item');
+    }
+  };
+
+  if (loading) return <Text style={{ padding: 20, color: theme.subText }}>Loading menu...</Text>;
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={[styles.sectionTitle, { color: theme.text }]}>Menu Management</Text>
-        <Text style={{ color: theme.primary, fontWeight: 'bold' }}>View All</Text>
+        <TouchableOpacity onPress={fetchMenu}>
+          <Text style={{ color: theme.primary, fontWeight: 'bold' }}>Refresh</Text>
+        </TouchableOpacity>
       </View>
       
-      {mockMenu.map(item => (
-        <MenuItem key={item.id} item={item} theme={theme} />
-      ))}
+      {menuItems.length === 0 ? (
+        <Text style={{ textAlign: 'center', color: theme.subText, marginVertical: 20 }}>No items found.</Text>
+      ) : (
+        menuItems.map(item => (
+          <MenuItem 
+            key={item._id || item.id} 
+            item={item} 
+            theme={theme} 
+            onAddToCart={(it, isDelete) => isDelete ? deleteItem(it) : addToCart(it)}
+          />
+        ))
+      )}
     </View>
   );
 };

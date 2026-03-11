@@ -1,18 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
-// Mock Data
-const initialTables = [
-  { id: 1, number: 'T-01', status: 'Free', seats: 4 },
-  { id: 2, number: 'T-02', status: 'Occupied', seats: 2, order: { id: '#102', items: 3, total: 45 } },
-  { id: 3, number: 'T-03', status: 'Occupied', seats: 4, order: { id: '#105', items: 5, total: 120 } },
-  { id: 4, number: 'T-04', status: 'Free', seats: 6 },
-  { id: 5, number: 'T-05', status: 'Free', seats: 2 },
-  { id: 6, number: 'T-06', status: 'Occupied', seats: 8, order: { id: '#108', items: 8, total: 210 } },
-  { id: 7, number: 'T-07', status: 'Free', seats: 4 },
-  { id: 8, number: 'T-08', status: 'Occupied', seats: 4, order: { id: '#111', items: 2, total: 35 } },
-];
+import { api } from '../../utils/api';
 
 const TableCard = ({ table, theme, onPress }) => {
   const scaleValue = useRef(new Animated.Value(1)).current;
@@ -65,7 +54,57 @@ const TableCard = ({ table, theme, onPress }) => {
 };
 
 const TableManager = ({ theme }) => {
+  const [tables, setTables] = useState([]);
   const [selectedTable, setSelectedTable] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    fetchTables();
+  }, []);
+
+  const fetchTables = async () => {
+    try {
+      const data = await api.getTables();
+      setTables(data);
+    } catch (e) {
+      console.error('Fetch tables error:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const seedTables = async () => {
+    try {
+      setLoading(true);
+      const initialTables = [
+        { number: 'T-01', seats: 4 },
+        { number: 'T-02', seats: 2 },
+        { number: 'T-03', seats: 4 },
+        { number: 'T-04', seats: 6 },
+        { number: 'T-05', seats: 2 },
+        { number: 'T-06', seats: 8 },
+      ];
+      for (const t of initialTables) {
+        await api.addTable(t);
+      }
+      fetchTables();
+    } catch (e) {
+      console.error('Seed tables error:', e);
+    }
+  };
+
+  const completeOrder = async (id) => {
+    try {
+      await api.updateTable(id, { status: 'Free', currentOrder: null });
+      fetchTables();
+      setSelectedTable(null);
+    } catch (e) {
+      console.error('Complete order error:', e);
+    }
+  };
+
+  if (loading) return <Text style={{ padding: 20, color: theme.subText }}>Loading tables...</Text>;
+
 
   return (
     <View style={styles.container}>
@@ -81,23 +120,26 @@ const TableManager = ({ theme }) => {
         </View>
       )}
 
-      {selectedTable && selectedTable.order && (
+      {selectedTable && selectedTable.currentOrder && (
         <View style={[styles.infoPanel, { backgroundColor: theme.cardBg, borderColor: theme.danger }]}>
           <Text style={[styles.panelTitle, { color: theme.text }]}>Order Details - {selectedTable.number}</Text>
           <View style={styles.orderRow}>
             <Text style={{ color: theme.subText }}>Order ID:</Text>
-            <Text style={{ color: theme.text, fontWeight: 'bold' }}>{selectedTable.order.id}</Text>
+            <Text style={{ color: theme.text, fontWeight: 'bold' }}>{selectedTable.currentOrder.orderId}</Text>
           </View>
           <View style={styles.orderRow}>
             <Text style={{ color: theme.subText }}>Total Items:</Text>
-            <Text style={{ color: theme.text, fontWeight: 'bold' }}>{selectedTable.order.items}</Text>
+            <Text style={{ color: theme.text, fontWeight: 'bold' }}>{selectedTable.currentOrder.items}</Text>
           </View>
           <View style={styles.orderRow}>
             <Text style={{ color: theme.subText }}>Total Amount:</Text>
-            <Text style={{ color: theme.primary, fontWeight: 'bold', fontSize: 18 }}>${selectedTable.order.total}</Text>
+            <Text style={{ color: theme.primary, fontWeight: 'bold', fontSize: 18 }}>₹{selectedTable.currentOrder.totalAmount}</Text>
           </View>
           <View style={styles.actionRow}>
-            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: theme.success }]} onPress={() => setSelectedTable(null)}>
+            <TouchableOpacity 
+                style={[styles.actionBtn, { backgroundColor: theme.success }]} 
+                onPress={() => completeOrder(selectedTable._id)}
+            >
               <Text style={styles.actionText}>Complete Order</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.closeBtn, { backgroundColor: theme.subText }]} onPress={() => setSelectedTable(null)}>
@@ -108,14 +150,26 @@ const TableManager = ({ theme }) => {
       )}
 
       <View style={styles.grid}>
-        {initialTables.map((table) => (
-          <TableCard 
-            key={table.id} 
-            table={table} 
-            theme={theme} 
-            onPress={(t) => setSelectedTable(t)} 
-          />
-        ))}
+        {tables.length === 0 ? (
+          <View style={{ width: '100%', alignItems: 'center', padding: 20 }}>
+            <Text style={{ color: theme.subText, marginBottom: 15 }}>No tables found.</Text>
+            <TouchableOpacity 
+                style={[styles.actionBtn, { backgroundColor: theme.primary, width: 200 }]} 
+                onPress={seedTables}
+            >
+                <Text style={styles.actionText}>Seed Initial Tables</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          tables.map((table) => (
+            <TableCard 
+              key={table._id || table.id} 
+              table={table} 
+              theme={theme} 
+              onPress={(t) => setSelectedTable(t)} 
+            />
+          ))
+        )}
       </View>
     </View>
   );

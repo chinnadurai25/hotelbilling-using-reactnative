@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { api } from '../../utils/api';
 
 const AnimatedNumber = ({ value, prefix = '', suffix = '', style }) => {
   const animatedValue = useRef(new Animated.Value(0)).current;
@@ -83,6 +84,37 @@ const StatCard = ({ theme, title, value, prefix, suffix, icon, color, delay }) =
 };
 
 const QuickStats = ({ theme }) => {
+  const [stats, setStats] = React.useState({
+    todayRevenue: 0,
+    todayOrders: 0,
+    allTimeRevenue: 0,
+    allTimeOrders: 0
+  });
+
+  React.useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      const orders = await api.getOrders();
+      const today = new Date().toISOString().split('T')[0];
+      
+      const todayOrders = orders.filter(o => o.date === today);
+      const todayRevenue = todayOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+      const allTimeRevenue = orders.reduce((sum, o) => sum + o.totalAmount, 0);
+
+      setStats({
+        todayRevenue,
+        todayOrders: todayOrders.length,
+        allTimeRevenue,
+        allTimeOrders: orders.length
+      });
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Text style={[styles.sectionTitle, { color: theme.text }]}>Quick Overview</Text>
@@ -90,8 +122,8 @@ const QuickStats = ({ theme }) => {
         <StatCard 
           theme={theme}
           title="Today's Revenue"
-          value={4580}
-          prefix="$"
+          value={stats.todayRevenue}
+          prefix="₹"
           icon="cash"
           color={theme.primary}
           delay={100}
@@ -99,27 +131,26 @@ const QuickStats = ({ theme }) => {
         <StatCard 
           theme={theme}
           title="Today's Orders"
-          value={124}
+          value={stats.todayOrders}
           icon="cart"
           color={theme.secondary}
           delay={200}
         />
         <StatCard 
           theme={theme}
-          title="Net Profit"
-          value={2850}
-          prefix="$"
-          icon="trending-up"
+          title="All Time Revenue"
+          value={stats.allTimeRevenue}
+          prefix="₹"
+          icon="stats-chart"
           color={theme.success}
           delay={300}
         />
         <StatCard 
           theme={theme}
-          title="Loss / Expenses"
-          value={1730}
-          prefix="$"
-          icon="trending-down"
-          color={theme.danger}
+          title="Total Orders"
+          value={stats.allTimeOrders}
+          icon="receipt"
+          color={theme.warning}
           delay={400}
         />
       </View>

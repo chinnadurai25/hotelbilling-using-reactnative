@@ -3,8 +3,10 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import FoodImage from './FoodImage';
 import { useCart } from '../context/CartContext';
+import { useTheme } from '../context/ThemeContext';
 
 const MenuItem = ({ item }) => {
+  const { theme } = useTheme();
   const { addToCart } = useCart();
 
   const handleAddToCart = () => {
@@ -12,24 +14,24 @@ const MenuItem = ({ item }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.cardBg }]}>
       <FoodImage 
         imageUrl={item.imageUrl} 
         style={styles.image}
       />
       <View style={styles.content}>
-        <Text style={styles.name}>{item.name}</Text>
+        <Text style={[styles.name, { color: theme.text }]}>{item.name}</Text>
         {item.description && (
-          <Text style={styles.description}>{item.description}</Text>
+          <Text style={[styles.description, { color: theme.subText }]}>{item.description}</Text>
         )}
         <View style={styles.footer}>
-          <Text style={styles.price}>₹{item.price}</Text>
+          <Text style={[styles.price, { color: theme.primary }]}>₹{item.price}</Text>
           <TouchableOpacity 
             style={styles.addButton}
             onPress={handleAddToCart}
           >
-            <Ionicons name="add-circle" size={24} color="#FF6B6B" />
-            <Text style={styles.addButtonText}>Add</Text>
+            <Ionicons name="add-circle" size={24} color={theme.primary} />
+            <Text style={[styles.addButtonText, { color: theme.primary }]}>Add</Text>
           </TouchableOpacity>
         </View>
       </View>
