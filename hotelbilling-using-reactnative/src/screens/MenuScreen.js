@@ -1,14 +1,17 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import MenuItem from '../components/MenuItem';
-import { menuData } from '../data/menuData';
 import { useCart } from '../context/CartContext';
+import { api } from '../utils/api';
 
 const MenuScreen = () => {
   const navigation = useNavigation();
   const [activeCategory, setActiveCategory] = useState('breakfast');
+  const [foodItems, setFoodItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const { getTotalItems } = useCart();
 
   const categories = [
@@ -17,8 +20,32 @@ const MenuScreen = () => {
     { key: 'dinner', label: 'Dinner' },
   ];
 
+  const fetchMenu = async () => {
+    try {
+      setLoading(true);
+      const data = await api.getFood();
+      setFoodItems(data);
+    } catch (error) {
+      console.error('Error fetching menu:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMenu();
+  }, []);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchMenu();
+  }, []);
+
   const getMenuItems = () => {
-    return menuData[activeCategory] || [];
+    return foodItems.filter(item => 
+      item.category.toLowerCase() === activeCategory.toLowerCase()
+    );
   };
 
   return (
@@ -60,14 +87,30 @@ const MenuScreen = () => {
         ))}
       </View>
 
-      <ScrollView 
-        style={styles.menuList}
-        contentContainerStyle={styles.menuListContent}
-      >
-        {getMenuItems().map(item => (
-          <MenuItem key={item.id} item={item} />
-        ))}
-      </ScrollView>
+      {loading && !refreshing ? (
+        <View style={styles.loader}>
+          <ActivityIndicator size="large" color="#FF6B6B" />
+        </View>
+      ) : (
+        <ScrollView 
+          style={styles.menuList}
+          contentContainerStyle={styles.menuListContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF6B6B']} />
+          }
+        >
+          {getMenuItems().length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="restaurant-outline" size={64} color="#ccc" />
+              <Text style={styles.emptyText}>No items found in this category</Text>
+            </View>
+          ) : (
+            getMenuItems().map(item => (
+              <MenuItem key={item._id || item.id} item={item} />
+            ))
+          )}
+        </ScrollView>
+      )}
     </View>
   );
 };
@@ -148,6 +191,21 @@ const styles = StyleSheet.create({
   },
   menuListContent: {
     padding: 16,
+  },
+  loader: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyContainer: {
+    paddingVertical: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#999',
   },
 });
 

@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { loadSales, addSale as addSaleToStorage } from '../data/storage';
+import { api } from '../utils/api';
 
 const SalesContext = createContext();
 
@@ -16,25 +16,33 @@ export const SalesProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Load sales from storage on mount
+    // Load sales from backend on mount
     const initSales = async () => {
-      const savedSales = await loadSales();
-      setSales(savedSales);
-      setLoading(false);
+      try {
+        const savedSales = await api.getOrders();
+        setSales(savedSales);
+      } catch (error) {
+        console.error('Error loading sales:', error);
+      } finally {
+        setLoading(false);
+      }
     };
     initSales();
   }, []);
 
   const addSale = async (order) => {
-    const orderWithId = {
-      ...order,
-      orderId: `ORD-${Date.now()}`,
-      timestamp: new Date().toISOString(),
-      date: new Date().toISOString().split('T')[0] // YYYY-MM-DD format
-    };
-    const updatedSales = await addSaleToStorage(orderWithId);
-    setSales(updatedSales);
-    return orderWithId;
+    try {
+      const orderToSave = {
+        ...order,
+        date: new Date().toISOString().split('T')[0]
+      };
+      const newOrder = await api.placeOrder(orderToSave);
+      setSales(prevSales => [newOrder, ...prevSales]);
+      return newOrder;
+    } catch (error) {
+      console.error('Error adding sale:', error);
+      throw error;
+    }
   };
 
   const getTodaySales = () => {

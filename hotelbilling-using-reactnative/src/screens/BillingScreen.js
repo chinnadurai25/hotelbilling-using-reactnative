@@ -24,13 +24,14 @@ const BillingScreen = () => {
     try {
       const order = {
         items: cart.map(item => ({
-          id: item.id,
+          foodItemId: item._id,
           name: item.name,
           price: item.price,
           quantity: item.quantity,
         })),
         totalAmount: totalAmount,
         paymentMethod: 'UPI',
+        date: new Date().toISOString().split('T')[0]
       };
 
       await addSale(order);

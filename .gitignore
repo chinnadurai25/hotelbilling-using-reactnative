@@ -1,28 +1,20 @@
-node_modules/
-.expo/
-.expo-shared/
+# Backend
+backend/node_modules/
+backend/.env
+backend/uploads/
+
+# Mobile App
+hotelbilling-using-reactnative/node_modules/
+hotelbilling-using-reactnative/.expo/
+hotelbilling-using-reactnative/.expo-shared/
+hotelbilling-using-reactnative/web-build/
+hotelbilling-using-reactnative/dist/
+
+# Generic
 npm-debug.*
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
-*.orig.*
-web-build/
-dist/
-
-# macOS
-.DS_Store
-
-# IDE
-.vscode/
-.idea/
 *.swp
 *.swo
 *~
-
-# Environment
-.env
-.env.local
-
-
+.DS_Store
+.vscode/
+.idea/

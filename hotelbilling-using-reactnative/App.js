@@ -9,6 +9,7 @@ import MenuScreen from './src/screens/MenuScreen';
 import CartScreen from './src/screens/CartScreen';
 import BillingScreen from './src/screens/BillingScreen';
 import SalesReportScreen from './src/screens/SalesReportScreen';
+import AdminDashboardScreen from './src/screens/AdminDashboardScreen';
 import { Ionicons } from '@expo/vector-icons';
 
 const Stack = createStackNavigator();
@@ -47,6 +48,8 @@ function MainTabs() {
             iconName = focused ? 'restaurant' : 'restaurant-outline';
           } else if (route.name === 'Sales') {
             iconName = focused ? 'bar-chart' : 'bar-chart-outline';
+          } else if (route.name === 'Admin') {
+            iconName = focused ? 'briefcase' : 'briefcase-outline';
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
@@ -65,6 +68,11 @@ function MainTabs() {
         name="Sales" 
         component={SalesReportScreen}
         options={{ title: 'Sales Report' }}
+      />
+      <Tab.Screen 
+        name="Admin" 
+        component={AdminDashboardScreen}
+        options={{ title: 'Admin' }}
       />
     </Tab.Navigator>
   );

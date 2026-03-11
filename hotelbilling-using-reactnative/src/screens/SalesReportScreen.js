@@ -1,42 +1,54 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { useSales } from '../context/SalesContext';
 import { Ionicons } from '@expo/vector-icons';
+import { api } from '../utils/api';
 
 const SalesReportScreen = () => {
-  const { getTodaySales, getTodayTotal, getTotalSales, sales } = useSales();
+  const { sales } = useSales();
+  const [displaySales, setDisplaySales] = useState([]);
   const [selectedDate, setSelectedDate] = useState('today');
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const todaySales = getTodaySales();
-  const todayTotal = getTodayTotal();
-  const allTimeTotal = getTotalSales();
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
-
-  const formatTime = (timestamp) => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString('en-IN', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  const getSalesForView = () => {
-    if (selectedDate === 'today') {
-      return todaySales;
+  const fetchSales = async () => {
+    try {
+      setLoading(true);
+      const data = await api.getOrders();
+      setDisplaySales(data);
+    } catch (error) {
+      console.error('Error fetching sales:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-    // For now, show all sales. Can be extended to filter by date
-    return sales;
   };
 
-  const displaySales = getSalesForView();
+  useEffect(() => {
+    fetchSales();
+  }, []);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchSales();
+  }, []);
+
+  const getFilteredSales = () => {
+    if (selectedDate === 'today') {
+      const today = new Date().toISOString().split('T')[0];
+      return displaySales.filter(sale => sale.date === today);
+    }
+    return displaySales;
+  };
+
+  const salesToDisplay = getFilteredSales();
+  const summarySales = getFilteredSales(); // For totals
+
+  const todayTotal = displaySales
+    .filter(s => s.date === new Date().toISOString().split('T')[0])
+    .reduce((sum, s) => sum + s.totalAmount, 0);
+
+  const allTimeTotal = displaySales.reduce((sum, s) => sum + s.totalAmount, 0);
 
   return (
     <View style={styles.container}>
@@ -76,43 +88,52 @@ const SalesReportScreen = () => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView 
-        style={styles.salesList}
-        contentContainerStyle={styles.salesListContent}
-      >
-        {displaySales.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="receipt-outline" size={64} color="#ccc" />
-            <Text style={styles.emptyText}>No sales data available</Text>
-          </View>
-        ) : (
-          displaySales.map((sale, index) => (
-            <View key={sale.orderId || index} style={styles.saleCard}>
-              <View style={styles.saleHeader}>
-                <View>
-                  <Text style={styles.orderId}>Order #{sale.orderId?.split('-')[1] || 'N/A'}</Text>
-                  <Text style={styles.orderDate}>
-                    {formatDate(sale.date || sale.timestamp)} at {formatTime(sale.timestamp)}
-                  </Text>
-                </View>
-                <Text style={styles.orderTotal}>₹{sale.totalAmount}</Text>
-              </View>
-              <View style={styles.itemsList}>
-                {sale.items?.map((item, itemIndex) => (
-                  <View key={itemIndex} style={styles.itemRow}>
-                    <Text style={styles.itemName}>
-                      {item.name} x{item.quantity}
-                    </Text>
-                    <Text style={styles.itemPrice}>
-                      ₹{item.price * item.quantity}
+      {loading && !refreshing ? (
+        <View style={styles.loader}>
+          <ActivityIndicator size="large" color="#FF6B6B" />
+        </View>
+      ) : (
+        <ScrollView 
+          style={styles.salesList}
+          contentContainerStyle={styles.salesListContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF6B6B']} />
+          }
+        >
+          {salesToDisplay.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="receipt-outline" size={64} color="#ccc" />
+              <Text style={styles.emptyText}>No sales data available</Text>
+            </View>
+          ) : (
+            salesToDisplay.map((sale, index) => (
+              <View key={sale._id || sale.orderId || index} style={styles.saleCard}>
+                <View style={styles.saleHeader}>
+                  <View>
+                    <Text style={styles.orderId}>Order #{sale.orderId?.split('-')[1] || 'N/A'}</Text>
+                    <Text style={styles.orderDate}>
+                      {formatDate(sale.date || sale.timestamp)} at {formatTime(sale.timestamp)}
                     </Text>
                   </View>
-                ))}
+                  <Text style={styles.orderTotal}>₹{sale.totalAmount}</Text>
+                </View>
+                <View style={styles.itemsList}>
+                  {sale.items?.map((item, itemIndex) => (
+                    <View key={itemIndex} style={styles.itemRow}>
+                      <Text style={styles.itemName}>
+                        {item.name} x{item.quantity}
+                      </Text>
+                      <Text style={styles.itemPrice}>
+                        ₹{item.price * item.quantity}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
               </View>
-            </View>
-          ))
-        )}
-      </ScrollView>
+            ))
+          )}
+        </ScrollView>
+      )}
     </View>
   );
 };
